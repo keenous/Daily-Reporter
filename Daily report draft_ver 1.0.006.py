@@ -312,15 +312,19 @@ class TaskManager:
 
     def save_tasks(self):
         if self.file_path is None:
-            # If no file path is set, act like 'Save As'
-            self.save_as()
-        else:
-            # Save the tasks to the specified file path in plain text format
-            with open(self.file_path, 'w') as file:
-                for priority, tasks in self.tasks.items():
-                    file.write(f"{priority}:\n")
-                    for task in tasks:
-                        file.write(f"  - {task}\n")
+            # If no file path is set, prompt the user to select a save location
+            self.file_path = filedialog.asksaveasfilename(defaultextension=".txt",
+                                                          filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
+            if not self.file_path:
+                return  # User cancelled the save dialog
+
+        # Save the tasks to the specified file path
+        with open(self.file_path, 'w') as file:
+            for priority, tasks in self.tasks.items():
+                file.write(f"{priority}:\n")
+                for task in tasks:
+                    file.write(f"  - {task}\n")
+        messagebox.showinfo("Info", "Tasks saved successfully")
 
     def save_as(self):
         file_path = filedialog.asksaveasfilename(
@@ -339,23 +343,6 @@ class TaskManager:
             with open(file_path, 'r', encoding='utf-8') as f:
                 self.tasks = json.load(f)
                 self.refresh_task_boxes()
-
-        # Open the tasks from the specified file path
-        with open(file_path, 'r') as file:
-            self.tasks = {}
-            current_priority = None
-            for line in file:
-                line = line.strip()
-                if line.endswith(':'):
-                    current_priority = line[:-1]
-                    self.tasks[current_priority] = []
-                elif line.startswith('- '):
-                    task = line[2:]
-                    if current_priority is not None:
-                        self.tasks[current_priority].append(task)
-        self.refresh_task_boxes()
-        self.update_task_counts()
-        self.file_path = file_path  # Update the file path to the opened file
 
     def export_pdf(self):
         try:
