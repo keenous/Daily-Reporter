@@ -312,28 +312,22 @@ class TaskManager:
 
     def save_tasks(self):
         if self.file_path is None:
-            # If no file path is set, prompt the user to select a save location
-            self.file_path = filedialog.asksaveasfilename(defaultextension=".txt",
-                                                          filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
-            if not self.file_path:
-                return  # User cancelled the save dialog
-
-        # Save the tasks to the specified file path
-        with open(self.file_path, 'w') as file:
-            for priority, tasks in self.tasks.items():
-                file.write(f"{priority}:\n")
-                for task in tasks:
-                    file.write(f"  - {task}\n")
-        messagebox.showinfo("Info", "Tasks saved successfully")
+            # If no file path is set, act like 'Save As'
+            self.save_as()
+        else:
+            # Save the tasks to the specified file path in plain text format
+            with open(self.file_path, 'w') as file:
+                json.dump(self.tasks, file, indent=4)
 
     def save_as(self):
         file_path = filedialog.asksaveasfilename(
-            defaultextension=".json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
+        defaultextension=".json",
+        filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+    )
         if file_path:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(self.tasks, f, ensure_ascii=False, indent=4)
+          self.file_path = file_path  # 设置文件路径
+        with open(self.file_path, 'w', encoding='utf-8') as f:
+            json.dump(self.tasks, f, ensure_ascii=False, indent=4)
 
     def open_file(self):
         file_path = filedialog.askopenfilename(
