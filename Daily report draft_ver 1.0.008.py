@@ -5,12 +5,35 @@ import json
 import os
 from datetime import datetime
 from tkinterdnd2 import DND_FILES, TkinterDnD
+import threading
+import time
+
+# Override the _QueryString class to make the entry wider
+class _QueryString(simpledialog._QueryString):
+    def body(self, master):
+        w = tk.Label(master, text=self.prompt, justify=tk.LEFT)
+        w.grid(row=0, padx=5, sticky=tk.W)
+
+        self.entry = tk.Entry(master, name="entry", width=60)  # Increased width here
+        self.entry.grid(row=1, padx=5, pady=5, sticky=tk.W+tk.E)
+        if self.initialvalue is not None:
+            self.entry.insert(0, self.initialvalue)
+            self.entry.select_range(0, tk.END)
+        return self.entry
+
+# Override the original askstring to use our custom _QueryString
+def askstring(title, prompt, **kw):
+    d = _QueryString(title, prompt, **kw)
+    return d.result
+
+# Replace simpledialog.askstring with our custom version
+simpledialog.askstring = askstring
 
 class TaskManager:
     def __init__(self):
         self.root = TkinterDnD.Tk()
         self.root.title("Task Manager")
-        self.root.geometry("800x600")
+        self.root.geometry("800x650")  # Increased height for status bar
 
         # Initialize drag-and-drop attributes
         self.drag_data = None
@@ -25,27 +48,21 @@ class TaskManager:
         self.undo_stack = []
         self.redo_stack = []
 
-        # Initialize file path and save status
+        # Initialize file path
         self.file_path = None
+        
+        # Auto-save settings
+        self.auto_save_interval = 300  # 5 minutes in seconds
         self.last_save_time = None
         self.last_edit_time = None
-        self.is_modified = False
-        self.auto_save_interval = 3000  # 3 seconds in milliseconds
+        self.auto_save_enabled = True
         
-        # Priority labels for PDF export
-        self.priority_labels = {
-            1: "Urgent and Important",
-            2: "Important but Not Urgent",
-            3: "Urgent but Not Important",
-            4: "Neither Urgent nor Important"
-        }
-
         # Create main containers
         self.create_menu_bar()
         self.create_input_section()
         self.create_task_boxes()
-        self.create_status_bar()
         self.create_action_buttons()
+        self.create_status_bar()  # Add status bar
 
         # Dictionary to store tasks
         self.tasks = {f"Priority {i}": [] for i in range(1, 5)}
@@ -64,6 +81,10 @@ class TaskManager:
         for listbox in self.task_boxes.values():
             listbox.bind('<Return>', lambda e: self.accomplish_task())  # Bind Enter in task boxes
             listbox.bind('<Double-Return>', lambda e: self.restore_task())  # Bind Double Enter in task boxes
+
+        # Start auto-save thread
+        self.auto_save_thread = threading.Thread(target=self.auto_save_loop, daemon=True)
+        self.auto_save_thread.start()
 
     def create_menu_bar(self):
         menubar = tk.Menu(self.root)
@@ -121,6 +142,14 @@ class TaskManager:
         # Configure grid
         task_frame.grid_columnconfigure(0, weight=1)
         task_frame.grid_columnconfigure(1, weight=1)
+
+        # Define priority labels
+        self.priority_labels = {
+            1: "Emergency also Important",
+            2: "Emergency but not Important",
+            3: "Important but not Emergency",
+            4: "Not emergency Not Important"
+        }
 
         # Create task boxes
         self.task_boxes = {}
@@ -183,7 +212,7 @@ class TaskManager:
     def create_action_buttons(self):
         # Create frame for action buttons
         action_frame = ttk.Frame(self.root)
-        action_frame.pack(pady=10, padx=10, fill='x', side='bottom')
+        action_frame.pack(pady=(0, 40), padx=10, fill='x', side='bottom')
 
         # Add action buttons
         ttk.Button(action_frame, text="Delete", command=self.delete_task).pack(side='left', padx=5)
@@ -194,50 +223,58 @@ class TaskManager:
         ttk.Button(action_frame, text="Restore", command=self.restore_task).pack(side='left', padx=5)
 
     def create_status_bar(self):
-        self.status_frame = ttk.Frame(self.root, relief="solid", borderwidth=1)
-        self.status_frame.pack(side='bottom', fill='x', padx=5, pady=5)
+        """Create status bar at the bottom of the window"""
+        self.status_bar = ttk.Frame(self.root)
+        self.status_bar.pack(side='bottom', fill='x')
         
-        self.save_status_label = ttk.Label(self.status_frame, text="")
-        self.save_status_label.pack(side='left', padx=5)
+        # Status label for auto-save
+        self.auto_save_label = ttk.Label(self.status_bar, text="Auto-save: Enabled")
+        self.auto_save_label.pack(side='left', padx=5)
         
-        self.last_edit_label = ttk.Label(self.status_frame, text="")
-        self.last_edit_label.pack(side='right', padx=5)
+        # Status label for last save
+        self.last_save_label = ttk.Label(self.status_bar, text="Last save: Never")
+        self.last_save_label.pack(side='left', padx=5)
         
-        self.schedule_auto_save()
+        # Status label for last edit
+        self.last_edit_label = ttk.Label(self.status_bar, text="Last edit: Never")
+        self.last_edit_label.pack(side='left', padx=5)
+        
+        # Toggle auto-save button
+        self.toggle_auto_save_btn = ttk.Button(
+            self.status_bar,
+            text="Toggle Auto-save",
+            command=self.toggle_auto_save
+        )
+        self.toggle_auto_save_btn.pack(side='right', padx=5)
 
-    def save_tasks(self, *args):
-        if not self.file_path:
-            self.file_path = filedialog.asksaveasfilename(
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-            )
-            if not self.file_path:
-                return
-
-        data = {
-            'tasks': self.tasks,
-            'task_count': self.task_count,
-            'accomplished_count': self.accomplished_count
-        }
-        
-        with open(self.file_path, 'w') as f:
-            json.dump(data, f, indent=4)
-        
-        self.is_modified = False
-        self.last_save_time = datetime.now()
-        self.save_status_label.config(text="All changes saved")
-        self.update_status_bar()
-
-    def schedule_auto_save(self):
-        if self.is_modified and self.file_path:
-            self.save_tasks()
-        self.root.after(self.auto_save_interval, self.schedule_auto_save)
+    def toggle_auto_save(self):
+        """Toggle auto-save functionality"""
+        self.auto_save_enabled = not self.auto_save_enabled
+        status = "Enabled" if self.auto_save_enabled else "Disabled"
+        self.auto_save_label.config(text=f"Auto-save: {status}")
 
     def update_status_bar(self):
+        """Update status bar with latest information"""
+        if self.last_save_time:
+            self.last_save_label.config(
+                text=f"Last save: {self.last_save_time.strftime('%H:%M:%S')}"
+            )
         if self.last_edit_time:
-            self.last_edit_label.config(text=f"Last edit: {self.last_edit_time.strftime('%H:%M:%S')}")
-        else:
-            self.last_edit_label.config(text="")
+            self.last_edit_label.config(
+                text=f"Last edit: {self.last_edit_time.strftime('%H:%M:%S')}"
+            )
+
+    def auto_save_loop(self):
+        """Background thread for auto-saving"""
+        while True:
+            time.sleep(1)  # Check every second
+            if (
+                self.auto_save_enabled
+                and self.file_path
+                and self.last_edit_time
+                and (datetime.now() - self.last_edit_time).seconds >= self.auto_save_interval
+            ):
+                self.save_tasks()
 
     def add_task(self, priority):
         task = self.task_input.get().strip()
@@ -249,9 +286,8 @@ class TaskManager:
             # Record action for undo
             self.undo_stack.append(('add', priority, task))
             self.redo_stack.clear()  # Clear redo stack on new action
-            self.update_edit_time()  # Update edit time
-            self.auto_save()  # Try auto-save after adding task
-            self.set_modified(True)
+            self.last_edit_time = datetime.now()
+            self.update_status_bar()
 
     def prompt_priority(self):
         task = self.task_input.get().strip()
@@ -276,9 +312,8 @@ class TaskManager:
             # Record action for undo
             self.undo_stack.append(('delete', selected_priority, task, selected_index))
             self.redo_stack.clear()  # Clear redo stack on new action
-            self.update_edit_time()  # Update edit time
-            self.auto_save()  # Try auto-save after deleting task
-            self.set_modified(True)
+            self.last_edit_time = datetime.now()
+            self.update_status_bar()
         except (IndexError, ValueError):
             return  # Simply return if no task is selected
 
@@ -295,9 +330,8 @@ class TaskManager:
                     # Update the task in the list and refresh the display
                     self.tasks[selected_priority][selected_index] = new_task.strip()
                     self.refresh_task_boxes()
-                    self.update_edit_time()  # Update edit time
-                    self.auto_save()  # Try auto-save after modifying task
-                    self.set_modified(True)
+                    self.last_edit_time = datetime.now()
+                    self.update_status_bar()
                 else:
                     messagebox.showwarning("Warning", "Task description cannot be empty.")
         except (IndexError, ValueError):
@@ -311,9 +345,8 @@ class TaskManager:
                 self.tasks[selected_priority].insert(selected_index - 1, task)
                 self.refresh_task_boxes()
                 self.task_boxes[selected_priority].selection_set(selected_index - 1)
-                self.update_edit_time()  # Update edit time
-                self.auto_save()  # Try auto-save after moving task
-                self.set_modified(True)
+                self.last_edit_time = datetime.now()
+                self.update_status_bar()
         except (IndexError, ValueError):
             messagebox.showwarning("Warning", "Please select a task to move")
 
@@ -325,9 +358,8 @@ class TaskManager:
                 self.tasks[selected_priority].insert(selected_index + 1, task)
                 self.refresh_task_boxes()
                 self.task_boxes[selected_priority].selection_set(selected_index + 1)
-                self.update_edit_time()  # Update edit time
-                self.auto_save()  # Try auto-save after moving task
-                self.set_modified(True)
+                self.last_edit_time = datetime.now()
+                self.update_status_bar()
         except (IndexError, ValueError):
             messagebox.showwarning("Warning", "Please select a task to move")
 
@@ -350,9 +382,8 @@ class TaskManager:
                 self.task_boxes[selected_priority].selection_set(0)
                 
                 self.update_task_counts()  # Update counts
-                self.update_edit_time()  # Update edit time
-                self.auto_save()  # Try auto-save after accomplishing task
-                self.set_modified(True)
+                self.last_edit_time = datetime.now()
+                self.update_status_bar()
         except (IndexError, ValueError):
             messagebox.showwarning("Warning", "Please select a task to accomplish")
 
@@ -363,9 +394,8 @@ class TaskManager:
             if task.endswith("(Accomplished)"):
                 self.tasks[selected_priority][selected_index] = task.replace(" (Accomplished)", "")
                 self.refresh_task_boxes()
-                self.update_edit_time()  # Update edit time
-                self.auto_save()  # Try auto-save after restoring task
-                self.set_modified(True)
+                self.last_edit_time = datetime.now()
+                self.update_status_bar()
         except (IndexError, ValueError):
             messagebox.showwarning("Warning", "Please select a task to restore")
 
@@ -381,32 +411,42 @@ class TaskManager:
             self.task_boxes[priority].delete(0, tk.END)
         self.task_count = 0
         self.counter_label.config(text="Total Tasks: 0")
+        self.file_path = None
+        self.last_edit_time = datetime.now()
+        self.last_save_time = None
+        self.update_status_bar()
+
+    def save_tasks(self):
+        if self.file_path is None:
+            # If no file path is set, act like 'Save As'
+            self.save_as()
+        else:
+            # Save the tasks to the specified file path in plain text format
+            with open(self.file_path, 'w') as file:
+                json.dump(self.tasks, file, indent=4)
+            self.last_save_time = datetime.now()
+            self.update_status_bar()
 
     def save_as(self):
         file_path = filedialog.asksaveasfilename(
-            defaultextension=".json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
+        defaultextension=".json",
+        filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+    )
         if file_path:
-            self.file_path = file_path
-            self.save_tasks()
+          self.file_path = file_path  # 设置文件路径
+        with open(self.file_path, 'w', encoding='utf-8') as f:
+            json.dump(self.tasks, f, ensure_ascii=False, indent=4)
+        self.last_save_time = datetime.now()
+        self.update_status_bar()
 
     def open_file(self):
         file_path = filedialog.askopenfilename(
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
         if file_path:
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.tasks = data['tasks']
-                    self.task_count = data.get('task_count', 0)
-                    self.accomplished_count = data.get('accomplished_count', 0)
-                    self.file_path = file_path
-                    self.refresh_task_boxes()
-                    self.set_modified(False)
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to load file: {str(e)}")
+            with open(file_path, 'r', encoding='utf-8') as f:
+                self.tasks = json.load(f)
+                self.refresh_task_boxes()
 
     def export_pdf(self):
         try:
@@ -427,14 +467,17 @@ class TaskManager:
             pdf = FPDF(orientation='L')
             pdf.add_page()
             
+            # Set font to support Chinese
+            pdf.add_font("DejaVu", "", "DejaVuSansCondensed.ttf", uni=True)
+            
             # Add title
-            pdf.set_font("Arial", 'B', size=16)
+            pdf.set_font("DejaVu", size=16)
             title = f"Daily Report - {current_date.strftime('%Y-%m-%d')} ({day_name})"
             pdf.cell(0, 8, title, ln=True, align='C')
             pdf.ln(1)  # Minimize space after title
 
             # Add task counts
-            pdf.set_font("Arial", size=10)
+            pdf.set_font("DejaVu", size=10)
             task_info = f"Total Tasks: {self.task_count} | Accomplished Tasks: {self.accomplished_count}"
             pdf.cell(0, 6, task_info, ln=True, align='C')
             pdf.ln(1)  # Minimize space after task info
@@ -442,12 +485,12 @@ class TaskManager:
             # Add tasks by priority with labels
             for priority, tasks in self.tasks.items():
                 # Add priority header with its label
-                pdf.set_font("Arial", 'B', size=10)
+                pdf.set_font("DejaVu", size=10)
                 header = f"{priority} - {self.priority_labels[int(priority.split()[-1])]}"
                 pdf.cell(0, 6, header, ln=True)
                 
                 # Add tasks
-                pdf.set_font("Arial", size=8)
+                pdf.set_font("DejaVu", size=8)
                 if tasks:  # If there are tasks in this priority
                     for task in tasks:
                         pdf.cell(0, 5, f"- {task}", ln=True)
@@ -542,28 +585,8 @@ class TaskManager:
             self.tasks[priority] = [task for task in tasks if not task.endswith("(Accomplished)")]
         self.refresh_task_boxes()
         self.update_task_counts()
-
-    def auto_save(self):
-        if self.is_modified and self.file_path:
-            self.save_tasks()
-            self.save_status_label.config(text="Auto-save: Ready")
-        else:
-            self.save_status_label.config(text="Auto-save: Not needed")
-
-    def update_edit_time(self):
         self.last_edit_time = datetime.now()
         self.update_status_bar()
-
-    def set_modified(self, modified=True):
-        self.is_modified = modified
-        if modified:
-            self.save_status_label.config(text="● Unsaved changes", foreground='orange')
-            self.last_edit_time = datetime.now()
-            self.update_status_bar()
-            # Schedule an auto-save
-            self.root.after(self.auto_save_interval, self.auto_save)
-        else:
-            self.save_status_label.config(text="✓ All changes saved", foreground='green')
 
 if __name__ == "__main__":
     app = TaskManager()
