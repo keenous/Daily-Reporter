@@ -1,0 +1,53 @@
+Add function:
+
+Add a undo and a redo function: When realized, this function can move a step backward or forward.
+For example, if I accidentally deleted a task, press undo, the 'undo' function can undo my action just now (1 step backward). 
+For example, if I accidentally undo something, click redo and it can restore to the status before I click undo (1 step forward).
+To reliaze this function, a new button in the menuis , called 'edit'. The action should be named with a button under the 'edit' list,
+One button names after 'undo', realizes 'undo' function. One button names after 'redo', realizes 'redo' function.
+
+5. Add a function and button : Move to the top. Move the selected task to the top of its task box.
+
+6. Add a function and button: Move to the bottom. Move the selected task to the bottom of its task box.
+
+I want to add a function.
+The backgrond information and problem what I occured is when I created a lot of tasks, after each task is 'accomplished', I click enter and it marked with '(accomplished)', 
+I want it to move the top of its task box, so I can see unaccomplished tasks below more clearly. Otherwise I need to distinguish the accomplished and unaccomplished tasks 
+because they are mixed together.
+To realize this new function, I want after 'accomplished' function is triggered, 
+the accomplished task automatically moved to the top of its task box.
+
+7. Auto-save function
+
+To keep saving the file in real-time.
+
+
+
+Adjustment:
+
+When use 'ctrl+s' saved a file, there should be no pop-up window, but a log indicate file sucessfully saved and display for 3 seconds at the right bottom of the UI.
+
+The edit window after click "modify" is too short, display content is limited, could you make it longer so it can display more content, please?
+
+
+
+
+Debug:
+
+1. 'Save' and 'Save as' function seems to be the same right now, after click the button, a save path has to be selected for both funcitons.
+It is right for 'Save as' to have this function, so no need to change.
+However, for 'Save', when click the button, the file should be save to the same previous saving path (if ther's any), and if no previous saving path existed, 
+then click save will act as a same function of 'save as'.
+
+3. When click 'X' to close the program. Pop up a window to ask you want to save the file or not. If this file is already saved, then click 'Yes' means 'save' cover that existed file, if this file is not saved already, click 'Yes' means 'save as'.
+
+2. TK Manager add function1: Realize when use mouse drag 'task' between 'task boxes', the dragged 'task' can be moved into the target 'taskbox'.
+
+After click 'modify', the pop-up window showed too few tests. Can you make it longer, please?
+
+After an operation is conducted on a 'task' each time, the window of the 'task box' display the top page. For example, if the task box has a long lists of tasks, 
+and I accomplished the last task on the list, after i click 'enter', this task is marked 'accomplished', but the display of the task box become the top of the task box,
+which means i can't see the task that i've selected just now. I want the selected task still be seen at the task box without roll down the page.
+
+3. The file saved can't be opened.
+
