@@ -3,6 +3,13 @@ Add function:
 Add a function and button : Move to the top. Move the selected task to the top of its task box.
 Add a function and button: Move to the bottom. Move the selected task to the bottom of its task box.
 
+After each task box, indicate currently how many tasks are inputted.
+
+If I want to mark task in task boxes by Monday, Tuesday, Wednesday, Thrsday, Friday. How to realize it?
+
+Right click a task, there's option to move this task into which task box.
+
+User mannual.
 
 
 Adjustment:
@@ -21,5 +28,7 @@ Debug:
 It is right for 'Save as' to have this function, so no need to change.
 However, for 'Save', when click the button, the file should be save to the same previous saving path (if ther's any), and if no previous saving path existed, 
 then click save will act as a same function of 'save as'.
+
+
 
 
