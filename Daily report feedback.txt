@@ -11,6 +11,8 @@ Right click a task, there's option to move this task into which task box.
 
 User mannual.
 
+When using mouse to drag a task, it can be insert a position (up or down) in its task box.
+
 
 Adjustment:
 
