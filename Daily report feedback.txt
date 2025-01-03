@@ -13,6 +13,8 @@ User mannual.
 
 When using mouse to drag a task, it can be insert a position (up or down) in its task box.
 
+In every task box, after the title, for example 'Emergency also important', add 'Total tasks: | Accmplilshed Tasks: ' of this task box.
+
 
 Adjustment:
 
@@ -30,6 +32,8 @@ Debug:
 It is right for 'Save as' to have this function, so no need to change.
 However, for 'Save', when click the button, the file should be save to the same previous saving path (if ther's any), and if no previous saving path existed, 
 then click save will act as a same function of 'save as'.
+
+2. 'Undo' and 'Redo' function doesn't reflect all actions when using this program. For example, if I delete all the completed tasks, and press 'ctrl+z', it doesn't work.
 
 
 
