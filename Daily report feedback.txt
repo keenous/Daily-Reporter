@@ -15,6 +15,8 @@ When using mouse to drag a task, it can be insert a position (up or down) in its
 
 In every task box, after the title, for example 'Emergency also important', add 'Total tasks: | Accmplilshed Tasks: ' of this task box.
 
+显示: 每个任务list box名称旁边, 显示这个任务类别下一共有多少个任务.
+
 
 Adjustment:
 
@@ -24,6 +26,7 @@ The edit window after click "modify" is too short, display content is limited, c
 
 When click 'X' to close the program. Pop up a window to ask you want to save the file or not. If this file is already saved, then click 'Yes' means 'save' cover that existed file, if this file is not saved already, click 'Yes' means 'save as'. If this file already been saved and no modification before close, then no need to pop up.
 
+Select a task, click 'Priority 1-4' button and categorize that task into taskbox.
 
 
 Debug:
@@ -34,6 +37,8 @@ However, for 'Save', when click the button, the file should be save to the same 
 then click save will act as a same function of 'save as'.
 
 2. 'Undo' and 'Redo' function doesn't reflect all actions when using this program. For example, if I delete all the completed tasks, and press 'ctrl+z', it doesn't work.
+
+3. 撤回操作只能影响任务,比如删除了所有已完成任务,后悔了,电机撤回, 没有反应.
 
 
 
