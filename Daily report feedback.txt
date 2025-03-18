@@ -17,6 +17,8 @@ In every task box, after the title, for example 'Emergency also important', add 
 
 显示: 每个任务list box名称旁边, 显示这个任务类别下一共有多少个任务.
 
+增加一栏Reminder, Reminder用于记录重要事项需要提醒Follow, 但已经操作过不需要额外操作的情况.
+
 
 Adjustment:
 
@@ -26,7 +28,7 @@ The edit window after click "modify" is too short, display content is limited, c
 
 When click 'X' to close the program. Pop up a window to ask you want to save the file or not. If this file is already saved, then click 'Yes' means 'save' cover that existed file, if this file is not saved already, click 'Yes' means 'save as'. If this file already been saved and no modification before close, then no need to pop up.
 
-Select a task, click 'Priority 1-4' button and categorize that task into taskbox.
+Select a task, click 'Priority 1-4' button and categorize that task into taskbox. [X2, strong demand on this].
 
 
 Debug:
