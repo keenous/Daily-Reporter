@@ -25,6 +25,10 @@ Add last saving time.
 
 每个任务栏右侧提供搜索滚动条,可以直接拉到最上面和最下面.
 
+10. Add a search column, input content and can get cursor on the results.
+
+11. Besides 'Total Tasks: ', display 'total tasks' of each task box before original 'Total Tasks' bar, then how many tasks in each task box is illustrated.
+
 
 
 
@@ -37,8 +41,6 @@ The edit window after click "modify" is too short, display content is limited, c
 When click 'X' to close the program. Pop up a window to ask you want to save the file or not. If this file is already saved, then click 'Yes' means 'save' cover that existed file, if this file is not saved already, click 'Yes' means 'save as'. If this file already been saved and no modification before close, then no need to pop up.
 
 Select a task, click 'Priority 1-4' button and categorize that task into taskbox. [X2, strong demand on this].
-
-
 
 
 
